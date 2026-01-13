@@ -3,12 +3,20 @@
 ..................................................................Global Variables.........................................................
 #========================================================================================================================================== #
 */
-
+var fs = require('fs');
+var data = fs.readFileSync('./setup.json');
+var config = JSON.parse(data);
 
 const rover = {
+  motor:{
+    motor_type: config.motor_type,
+    motor_steering: config.motor_steering,
+    motor1_comName: config.motor1_comName,
+    motor2_comName: config.motor2_comName,
+  },
   gps: null,
   pixhawk_port: {
-    comName: "/dev/ttyAMA4",
+    comName: config.pixhawk_comName,
     baudrate: 115200,
     serial: null,
     mavlink: null,

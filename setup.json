@@ -1,0 +1,8 @@
+{
+    "pixhawk_comName": "/dev/ttyAMA4",
+    "rplidar_comName": "/dev/ttyAMA2",
+    "motor_type": "ZLAC8015D",
+    "motor1_comName": "/dev/ttySC0",
+    "motor2_comName": "/dev/ttySC1",
+    "motor_steering": "servo_steering"
+}
