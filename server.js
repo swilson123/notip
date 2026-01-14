@@ -11,8 +11,22 @@ const rover = {
   motor:{
     motor_type: config.motor_type,
     motor_steering: config.motor_steering,
-    motor1_comName: config.motor1_comName,
-    motor2_comName: config.motor2_comName,
+    max_rpm: config.max_rpm,
+  },
+  zling:{
+   comName1: config.motor_driver1_comName,
+   comName1_connected: false,
+   comName2: config.motor_driver2_comName,
+   comName2_connected: false,
+   baudrate: 115200,
+   slave1_Id: 1,
+   slave2_Id: 1,
+   REG_CONTROL_WORD: 0x200E,
+   REG_OP_MODE: 0x200D,
+   REG_L_TARGET_RPM: 0x2088,
+   REG_R_TARGET_RPM: 0x2089,
+   REG_L_FEEDBACK: 0x20AB,
+   REG_R_FEEDBACK: 0x20AC,
   },
   gps: null,
   pixhawk_port: {
@@ -261,7 +275,8 @@ const rover = {
     yaw_rover: require("./lib/navigation/yaw_rover"),
     run_mission: require("./lib/navigation/run_mission"),
     angle_to_pwm: require("./lib/navigation/angle_to_pwm"),
-    calc_speed_based_on_distance: require("./lib/navigation/calc_speed_based_on_distance")
+    calc_speed_based_on_distance: require("./lib/navigation/calc_speed_based_on_distance"),
+    ModbusRTU: require("modbus-serial")
 
 };
 
