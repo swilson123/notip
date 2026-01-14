@@ -276,7 +276,8 @@ const rover = {
     run_mission: require("./lib/navigation/run_mission"),
     angle_to_pwm: require("./lib/navigation/angle_to_pwm"),
     calc_speed_based_on_distance: require("./lib/navigation/calc_speed_based_on_distance"),
-    ModbusRTU: require("modbus-serial")
+    ModbusRTU: require("modbus-serial"),
+    calc_motor_rpm_value: require("./lib/navigation/calc_motor_rpm_value")
 
 };
 
