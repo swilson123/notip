@@ -1,9 +1,11 @@
 {
     "pixhawk_comName": "/dev/ttyAMA4",
     "rplidar_comName": "/dev/ttyAMA2",
+    "rplidar_directory": "/home/rover/notip/lib/lidar",
     "motor_type": "ZLAC8015D",
     "motor_driver1_comName": "/dev/ttySC0",
     "motor_driver2_comName": "/dev/ttySC1",
     "motor_steering": "servo_steering",
-    "max_rpm": 370
+    "max_rpm": 370,
+    "waveshare_comName": "/dev/ttySC0"
 }
