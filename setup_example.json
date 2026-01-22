@@ -7,5 +7,6 @@
     "motor_driver2_comName": "/dev/ttySC1",
     "motor_steering": "servo_steering",
     "max_rpm": 370,
-    "waveshare_comName": "/dev/ttySC0"
+    "waveshare_comName": "/dev/ttySC0",
+    "arduino_comName": "/dev/tty.usbmodem213401"
 }
