@@ -131,11 +131,11 @@ void deliver_package() {
 void send_current_state() {
   Serial.print("{'belt_state':'");
   Serial.print(belt_state);
-  Serial.print(",'arm_state':'");
+  Serial.print("','arm_state':'");
   Serial.print(arm_state);
-  Serial.print(",'hook_state':'");
+  Serial.print("','hook_state':'");
   Serial.print(hook_state);
-  Serial.print(",'auto_delivery':'");
+  Serial.print("','auto_delivery':'");
   Serial.print(auto_delivery);
   Serial.println("'}");
 }
@@ -152,20 +152,20 @@ void heartbeat() {
   }
 
   //Arm Up.......................
-  if (arm_state != "extend" && arm_time_stamp != 0 && current_time_stamp > arm_time_stamp + arm_extend_timeout)
+  if (arm_state == "extend" && arm_time_stamp != 0 && current_time_stamp > arm_time_stamp + arm_extend_timeout)
   {
     open_arm();
   }
 
   //Arm Down.......................
-  if (arm_state != "retract" && arm_time_stamp != 0 && current_time_stamp > arm_time_stamp + arm_retract_timeout)
+  if (arm_state == "retract" && arm_time_stamp != 0 && current_time_stamp > arm_time_stamp + arm_retract_timeout)
   {
     close_arm();
   }
 
 
   //Hook Closed.......................
-  if (hook_state != "extend" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_extend_timeout)
+  if (hook_state == "extend" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_extend_timeout)
   {
     close_hook();
 
@@ -173,20 +173,20 @@ void heartbeat() {
 
 
   //Hook Opened.......................
-  if (hook_state != "retract" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_retract_timeout)
+  if (hook_state == "retract" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_retract_timeout)
   {
     open_hook();
   }
 
   //Belt Extended.......................
-  if (belt_state != "extend" && belt_time_stamp != 0 && current_time_stamp > belt_time_stamp + belt_extend_timeout)
+  if (belt_state == "extend" && belt_time_stamp != 0 && current_time_stamp > belt_time_stamp + belt_extend_timeout)
   {
     open_belt();
   }
 
 
   //Belt Retracted.......................
-  if (belt_state != "retract" && belt_time_stamp != 0 && current_time_stamp > belt_time_stamp + belt_retract_timeout)
+  if (belt_state == "retract" && belt_time_stamp != 0 && current_time_stamp > belt_time_stamp + belt_retract_timeout)
   {
     close_belt();
   }
@@ -246,7 +246,7 @@ void open_hook() {
 
   if (auto_delivery) {
     //Hook opened next close the hook........
-    retract_hook();
+    extend_hook();
   }
 }
 
