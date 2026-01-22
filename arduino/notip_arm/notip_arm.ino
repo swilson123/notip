@@ -117,11 +117,13 @@ void message_received(String message) {
 //Start Package Delivery...........................................................................
 void deliver_package() {
 
-  //Set auto delivery to true.......
-  auto_delivery = true;
+  if (!auto_delivery) {
+    //Set auto delivery to true.......
+    auto_delivery = true;
 
-  //Start auto delivery by extending belt..........
-  extend_belt();
+    //Start auto delivery by extending belt..........
+    extend_belt();
+  }
 
 }
 
@@ -188,8 +190,6 @@ void heartbeat() {
   {
     close_belt();
   }
-
-
 
 }
 
@@ -286,6 +286,8 @@ void open_belt() {
 void close_belt() {
   belt_state = "close";
 
-  //Auto delivery finished.........
-  auto_delivery = false;
+  if (auto_delivery) {
+    //Auto delivery finished.........
+    auto_delivery = false;
+  }
 }
