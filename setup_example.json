@@ -8,5 +8,6 @@
     "motor_steering": "servo_steering",
     "max_rpm": 370,
     "waveshare_comName": "/dev/ttySC0",
-    "arduino_comName": "/dev/tty.usbmodem213401"
+    "arduino_comName": "/dev/tty.usbmodem213401",
+    "gpio_comName": "/dev/gpiochip0"
 }
