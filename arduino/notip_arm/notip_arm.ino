@@ -1,4 +1,8 @@
 #include <Servo.h>
+#include <ArduinoJson.h>
+
+// Allocate JSON document
+StaticJsonDocument<200> doc;
 
 //Servos.................................................................................
 Servo arm;
@@ -86,29 +90,24 @@ void serialEvent() {
 }
 
 //Message received from Companion Computer........................................................
-void message_received(String message) {
+void message_received(String json) {
 
-  if (message == "deliver_package") {
+  // Parse JSON
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (doc['message'] == "deliver_package") {
     deliver_package();
   }
-  else if (message == "extend_belt") {
-    extend_belt();
+  else if (doc['message'] == "belt") {
+    belt.write(doc['value']);
   }
-  else if (message == "retract_belt") {
-    retract_belt();
+  else if (doc['message'] == "arm") {
+    arm.write(doc['value']);
   }
-  else if (message == "extend_arm") {
-    extend_arm();
+  else if (doc['message'] == "hook") {
+    hook.write(doc['value']);
   }
-  else if (message == "retract_arm") {
-    retract_arm();
-  }
-  else if (message == "extend_hook") {
-    extend_hook();
-  }
-  else if (message == "retract_hook") {
-    retract_hook();
-  }
+
 
 }
 
