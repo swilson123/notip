@@ -15,6 +15,7 @@ process.on('exit', function (err) {
 
 const notip_init = require('./lib/notip.js');
 
+
 //Fetch setup params......................
 var fs = require('fs');
 var data = fs.readFileSync('./setup.json');

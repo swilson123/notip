@@ -1,5 +1,6 @@
 #include <Servo.h>
 #include <ArduinoJson.h>
+#include <AccelStepper.h>
 
 
 
@@ -8,9 +9,20 @@ Servo arm;
 Servo hook;
 Servo belt;
 
-int arm_pin = 1;
+int arm_pin = 5;
 int hook_pin = 2;
-int belt_pin = 3;
+
+//Belt......
+int belt_pin = 9;
+int belt_direction_pin = 10; // Set stepping direction
+int belt_enable_pin = 8; // LOW: Driver enabled, HIGH: Driver disabled
+AccelStepper actuator(AccelStepper::DRIVER, belt_pin, belt_direction_pin);
+
+// Motion settings
+int stepsPerMM = 320;     // adjust for your screw + microstepping
+int travelMM = 100;       // move 100mm
+int microSecondsDelay = 10; // Delay in microseconds between each step
+bool belt_active = false;
 
 //States...................................................................................
 bool auto_delivery = false;
@@ -36,7 +48,7 @@ int arm_retract_value = 0;
 int hook_extend_value = 30;
 int hook_retract_value = 0;
 
-int belt_extend_value = 30;
+int belt_extend_value = 200;
 int belt_retract_value = 0;
 
 
@@ -46,6 +58,8 @@ long hook_time_stamp = 0;
 long belt_time_stamp = 0;
 long current_time_stamp = 0;
 long old_time_stamp = 0;
+long move_time_stamp = 0;
+long current_move_time_stamp = 0;
 
 //Serial string................................................................................
 String inputString = "";            // a string to hold incoming data from companion computer
@@ -53,6 +67,16 @@ String inputString = "";            // a string to hold incoming data from compa
 
 //Setup......................................................................................
 void setup() {
+
+  //Belt Pins...........
+  actuator.setMaxSpeed(1000);      // steps/sec
+  actuator.setAcceleration(500);   // steps/sec^2
+  actuator.setCurrentPosition(0);
+  pinMode(belt_enable_pin, OUTPUT);
+  digitalWrite(belt_enable_pin, LOW);
+
+
+
   Serial.begin(115200);      //Set Baud Rate
   arm.attach(arm_pin);
   hook.attach(hook_pin);
@@ -65,6 +89,7 @@ void setup() {
 void loop() {
   //Heartbeat......................
   heartbeat();
+  actuator.run();
 
 }
 
@@ -97,26 +122,43 @@ void message_received(String json) {
   StaticJsonDocument<256> doc;
   DeserializationError error = deserializeJson(doc, json);
 
-  
+
+
+  String message = doc["message"];
+
+  int value = doc["value"];
+
+  if (message == "deliver_package") {
+    deliver_package(value);
+  }
+  else if (message == "belt") {
+
+
+    if (value < 1100) {
+
+      move_belt(true);   // forward
+    } else if (value > 1800) {
+
+      move_belt(false);  // backward
+    }
+    else {
+      digitalWrite(belt_enable_pin, LOW);
+      actuator.stop();
     
-    String message = doc["message"];
 
-    int value = doc["value"];
-
-    if (message == "deliver_package") {
-      deliver_package(value);
-    }
-    else if (message == "belt") {
-      belt.write(value);
-    }
-    else if (message == "arm") {
-      arm.write(value);
-    }
-    else if (message == "hook") {
-      hook.write(value);
     }
 
-  
+
+
+  }
+  else if (message == "arm") {
+    arm.write(value);
+  }
+  else if (message == "hook") {
+    hook.write(value);
+  }
+
+
 
 
 }
@@ -299,4 +341,30 @@ void close_belt() {
     //Auto delivery finished.........
     auto_delivery = false;
   }
+}
+
+
+
+//Belt Test...................
+void move_belt(bool direction) {
+  current_move_time_stamp = millis();
+  digitalWrite(belt_enable_pin, HIGH);
+
+  if (current_move_time_stamp  > move_time_stamp + 1000) {
+    move_time_stamp = current_move_time_stamp;
+
+    if (direction) {
+
+      actuator.moveTo(20000);   // move forward
+
+
+    } else {
+      actuator.moveTo(200);       // move back
+   
+
+    }
+
+  }
+
+
 }
