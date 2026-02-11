@@ -2,32 +2,20 @@
 #include <ArduinoJson.h>
 #include <AccelStepper.h>
 
-
-
 //Servos.................................................................................
 Servo arm;
 Servo belt;
 
 int arm_pin = 5;
-
-
-//Belt......
 int belt_pin = 9;
 int belt_direction_pin = 10; // Set stepping direction
 int belt_enable_pin = 8; // LOW: Driver enabled, HIGH: Driver disabled
 AccelStepper actuator(AccelStepper::DRIVER, belt_pin, belt_direction_pin);
 
-// Motion settings
-int stepsPerMM = 320;     // adjust for your screw + microstepping
-int travelMM = 100;       // move 100mm
-int microSecondsDelay = 10; // Delay in microseconds between each step
-bool belt_active = false;
-
 //States...................................................................................
 bool auto_delivery = false;
 String arm_state = "stopped";
 String belt_state = "stopped";
-
 
 //Servo Timeouts..................................................................................
 int arm_extend_timeout = 5000;
@@ -66,8 +54,6 @@ void setup() {
   actuator.setCurrentPosition(0);
   pinMode(belt_enable_pin, OUTPUT);
   digitalWrite(belt_enable_pin, LOW);
-
-
 
   Serial.begin(115200);      //Set Baud Rate
   arm.attach(arm_pin);
@@ -108,11 +94,9 @@ void serialEvent() {
 void message_received(String json) {
 
 
-
   // Parse JSON
   StaticJsonDocument<256> doc;
   DeserializationError error = deserializeJson(doc, json);
-
 
 
   String message = doc["message"];
@@ -136,10 +120,7 @@ void message_received(String json) {
       digitalWrite(belt_enable_pin, LOW);
       actuator.stop();
 
-
     }
-
-
 
   }
   else if (message == "arm") {
@@ -149,9 +130,6 @@ void message_received(String json) {
     Serial.print("unknown message");
     Serial.println(message);
   }
-
-
-
 
 }
 
