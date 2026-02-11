@@ -6,11 +6,10 @@
 
 //Servos.................................................................................
 Servo arm;
-Servo hook;
 Servo belt;
 
 int arm_pin = 5;
-int hook_pin = 2;
+
 
 //Belt......
 int belt_pin = 9;
@@ -27,7 +26,6 @@ bool belt_active = false;
 //States...................................................................................
 bool auto_delivery = false;
 String arm_state = "stopped";
-String hook_state = "stopped";
 String belt_state = "stopped";
 
 
@@ -35,26 +33,20 @@ String belt_state = "stopped";
 int arm_extend_timeout = 5000;
 int arm_retract_timeout = 5000;
 
-int hook_extend_timeout = 5000;
-int hook_retract_timeout = 5000;
-
-int belt_extend_timeout = 5000;
-int belt_retract_timeout = 5000;
+int belt_extend_timeout = 10000;
+int belt_retract_timeout = 10000;
 
 //Extend and Retract values.................................................................
-int arm_extend_value = 30;
-int arm_retract_value = 0;
+int arm_extend_value = 200;
+int arm_retract_value = 60;
 
-int hook_extend_value = 30;
-int hook_retract_value = 0;
 
-int belt_extend_value = 200;
-int belt_retract_value = 0;
+int belt_extend_value = 20000;
+int belt_retract_value = 200;
 
 
 //Timestamps...............................................................................
 long arm_time_stamp = 0;
-long hook_time_stamp = 0;
 long belt_time_stamp = 0;
 long current_time_stamp = 0;
 long old_time_stamp = 0;
@@ -79,7 +71,6 @@ void setup() {
 
   Serial.begin(115200);      //Set Baud Rate
   arm.attach(arm_pin);
-  hook.attach(hook_pin);
   belt.attach(belt_pin);
 }
 
@@ -136,15 +127,15 @@ void message_received(String json) {
 
     if (value < 1100) {
 
-      move_belt(true);   // forward
+      extend_belt();   // forward
     } else if (value > 1800) {
 
-      move_belt(false);  // backward
+      retract_belt();  // backward
     }
     else {
       digitalWrite(belt_enable_pin, LOW);
       actuator.stop();
-    
+
 
     }
 
@@ -154,8 +145,9 @@ void message_received(String json) {
   else if (message == "arm") {
     arm.write(value);
   }
-  else if (message == "hook") {
-    hook.write(value);
+  else {
+    Serial.print("unknown message");
+    Serial.println(message);
   }
 
 
@@ -184,8 +176,6 @@ void send_current_state() {
   Serial.print(belt_state);
   Serial.print("','arm_state':'");
   Serial.print(arm_state);
-  Serial.print("','hook_state':'");
-  Serial.print(hook_state);
   Serial.print("','auto_delivery':'");
   Serial.print(auto_delivery);
   Serial.println("'}");
@@ -214,20 +204,6 @@ void heartbeat() {
     close_arm();
   }
 
-
-  //Hook Closed.......................
-  if (hook_state == "extend" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_extend_timeout)
-  {
-    close_hook();
-
-  }
-
-
-  //Hook Opened.......................
-  if (hook_state == "retract" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_retract_timeout)
-  {
-    open_hook();
-  }
 
   //Belt Extended.......................
   if (belt_state == "extend" && belt_time_stamp != 0 && current_time_stamp > belt_time_stamp + belt_extend_timeout)
@@ -270,57 +246,26 @@ void close_arm() {
   arm_state = "close";
 
   if (auto_delivery) {
-    //Arm Lowered next open the hook........
-    retract_hook();
-  }
-
-}
-
-
-//Hook Actuator................................................................................
-
-void extend_hook() {
-  hook.write(hook_extend_value);
-  hook_state = "extend";
-  hook_time_stamp = millis();
-}
-
-
-void retract_hook() {
-  hook.write(hook_retract_value);
-  hook_state = "retract";
-  hook_time_stamp = millis();
-}
-
-void open_hook() {
-  hook_state = "open";
-
-  if (auto_delivery) {
-    //Hook opened next close the hook........
-    extend_hook();
-  }
-}
-
-void close_hook() {
-  hook_state = "close";
-
-  if (auto_delivery) {
-    //Hook closed, currently going to skip raising arm, and retract belt.........
+    //Arm Lowered next retract belt ........
     retract_belt();
   }
+
 }
+
+
+
 
 
 //Belt Actuator..................................................................................
 void extend_belt() {
-  belt.write(belt_extend_value);
+  move_belt(true);
   belt_state = "extend";
   belt_time_stamp = millis();
 }
 
 
 void retract_belt() {
-  belt.write(belt_retract_value);
+  move_belt(false);
   belt_state = "retract";
   belt_time_stamp = millis();
 }
@@ -345,7 +290,7 @@ void close_belt() {
 
 
 
-//Belt Test...................
+//Move Belt....................................................................
 void move_belt(bool direction) {
   current_move_time_stamp = millis();
   digitalWrite(belt_enable_pin, HIGH);
@@ -354,17 +299,13 @@ void move_belt(bool direction) {
     move_time_stamp = current_move_time_stamp;
 
     if (direction) {
-
-      actuator.moveTo(20000);   // move forward
-
+      actuator.moveTo(belt_extend_value);   // move forward
 
     } else {
-      actuator.moveTo(200);       // move back
-   
+      actuator.moveTo(belt_retract_value);       // move back
 
     }
 
   }
-
 
 }
