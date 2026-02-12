@@ -1,48 +1,45 @@
 #include <Servo.h>
+#include <ArduinoJson.h>
+#include <AccelStepper.h>
 
 //Servos.................................................................................
 Servo arm;
-Servo hook;
 Servo belt;
 
-int arm_pin = 1;
-int hook_pin = 2;
-int belt_pin = 3;
+int arm_pin = 5;
+int belt_pin = 9;
+int belt_direction_pin = 10; // Set stepping direction
+int belt_enable_pin = 8; // LOW: Driver enabled, HIGH: Driver disabled
+AccelStepper actuator(AccelStepper::DRIVER, belt_pin, belt_direction_pin);
 
 //States...................................................................................
 bool auto_delivery = false;
 String arm_state = "stopped";
-String hook_state = "stopped";
 String belt_state = "stopped";
-
 
 //Servo Timeouts..................................................................................
 int arm_extend_timeout = 5000;
 int arm_retract_timeout = 5000;
 
-int hook_extend_timeout = 5000;
-int hook_retract_timeout = 5000;
-
-int belt_extend_timeout = 5000;
-int belt_retract_timeout = 5000;
+int belt_extend_timeout = 10000;
+int belt_retract_timeout = 10000;
 
 //Extend and Retract values.................................................................
-int arm_extend_value = 30;
-int arm_retract_value = 0;
+int arm_extend_value = 200;
+int arm_retract_value = 60;
 
-int hook_extend_value = 30;
-int hook_retract_value = 0;
 
-int belt_extend_value = 30;
-int belt_retract_value = 0;
+int belt_extend_value = 20000;
+int belt_retract_value = 200;
 
 
 //Timestamps...............................................................................
 long arm_time_stamp = 0;
-long hook_time_stamp = 0;
 long belt_time_stamp = 0;
 long current_time_stamp = 0;
 long old_time_stamp = 0;
+long move_time_stamp = 0;
+long current_move_time_stamp = 0;
 
 //Serial string................................................................................
 String inputString = "";            // a string to hold incoming data from companion computer
@@ -50,9 +47,16 @@ String inputString = "";            // a string to hold incoming data from compa
 
 //Setup......................................................................................
 void setup() {
+
+  //Belt Pins...........
+  actuator.setMaxSpeed(1000);      // steps/sec
+  actuator.setAcceleration(500);   // steps/sec^2
+  actuator.setCurrentPosition(0);
+  pinMode(belt_enable_pin, OUTPUT);
+  digitalWrite(belt_enable_pin, LOW);
+
   Serial.begin(115200);      //Set Baud Rate
   arm.attach(arm_pin);
-  hook.attach(hook_pin);
   belt.attach(belt_pin);
 }
 
@@ -62,6 +66,7 @@ void setup() {
 void loop() {
   //Heartbeat......................
   heartbeat();
+  actuator.run();
 
 }
 
@@ -86,28 +91,44 @@ void serialEvent() {
 }
 
 //Message received from Companion Computer........................................................
-void message_received(String message) {
+void message_received(String json) {
+
+
+  // Parse JSON
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, json);
+
+
+  String message = doc["message"];
+
+  int value = doc["value"];
 
   if (message == "deliver_package") {
-    deliver_package();
+    deliver_package(value);
   }
-  else if (message == "extend_belt") {
-    extend_belt();
+  else if (message == "belt") {
+
+
+    if (value < 1100) {
+
+      extend_belt();   // forward
+    } else if (value > 1800) {
+
+      retract_belt();  // backward
+    }
+    else {
+      digitalWrite(belt_enable_pin, LOW);
+      actuator.stop();
+
+    }
+
   }
-  else if (message == "retract_belt") {
-    retract_belt();
+  else if (message == "arm") {
+    arm.write(value);
   }
-  else if (message == "extend_arm") {
-    extend_arm();
-  }
-  else if (message == "retract_arm") {
-    retract_arm();
-  }
-  else if (message == "extend_hook") {
-    extend_hook();
-  }
-  else if (message == "retract_hook") {
-    retract_hook();
+  else {
+    Serial.print("unknown message");
+    Serial.println(message);
   }
 
 }
@@ -115,7 +136,7 @@ void message_received(String message) {
 
 
 //Start Package Delivery...........................................................................
-void deliver_package() {
+void deliver_package(int value) {
 
   if (!auto_delivery) {
     //Set auto delivery to true.......
@@ -133,8 +154,6 @@ void send_current_state() {
   Serial.print(belt_state);
   Serial.print("','arm_state':'");
   Serial.print(arm_state);
-  Serial.print("','hook_state':'");
-  Serial.print(hook_state);
   Serial.print("','auto_delivery':'");
   Serial.print(auto_delivery);
   Serial.println("'}");
@@ -163,20 +182,6 @@ void heartbeat() {
     close_arm();
   }
 
-
-  //Hook Closed.......................
-  if (hook_state == "extend" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_extend_timeout)
-  {
-    close_hook();
-
-  }
-
-
-  //Hook Opened.......................
-  if (hook_state == "retract" && hook_time_stamp != 0 && current_time_stamp > hook_time_stamp + hook_retract_timeout)
-  {
-    open_hook();
-  }
 
   //Belt Extended.......................
   if (belt_state == "extend" && belt_time_stamp != 0 && current_time_stamp > belt_time_stamp + belt_extend_timeout)
@@ -219,57 +224,26 @@ void close_arm() {
   arm_state = "close";
 
   if (auto_delivery) {
-    //Arm Lowered next open the hook........
-    retract_hook();
-  }
-
-}
-
-
-//Hook Actuator................................................................................
-
-void extend_hook() {
-  hook.write(hook_extend_value);
-  hook_state = "extend";
-  hook_time_stamp = millis();
-}
-
-
-void retract_hook() {
-  hook.write(hook_retract_value);
-  hook_state = "retract";
-  hook_time_stamp = millis();
-}
-
-void open_hook() {
-  hook_state = "open";
-
-  if (auto_delivery) {
-    //Hook opened next close the hook........
-    extend_hook();
-  }
-}
-
-void close_hook() {
-  hook_state = "close";
-
-  if (auto_delivery) {
-    //Hook closed, currently going to skip raising arm, and retract belt.........
+    //Arm Lowered next retract belt ........
     retract_belt();
   }
+
 }
+
+
+
 
 
 //Belt Actuator..................................................................................
 void extend_belt() {
-  belt.write(belt_extend_value);
+  move_belt(true);
   belt_state = "extend";
   belt_time_stamp = millis();
 }
 
 
 void retract_belt() {
-  belt.write(belt_retract_value);
+  move_belt(false);
   belt_state = "retract";
   belt_time_stamp = millis();
 }
@@ -290,4 +264,26 @@ void close_belt() {
     //Auto delivery finished.........
     auto_delivery = false;
   }
+}
+
+
+
+//Move Belt....................................................................
+void move_belt(bool direction) {
+  current_move_time_stamp = millis();
+  digitalWrite(belt_enable_pin, HIGH);
+
+  if (current_move_time_stamp  > move_time_stamp + 1000) {
+    move_time_stamp = current_move_time_stamp;
+
+    if (direction) {
+      actuator.moveTo(belt_extend_value);   // move forward
+
+    } else {
+      actuator.moveTo(belt_retract_value);       // move back
+
+    }
+
+  }
+
 }
