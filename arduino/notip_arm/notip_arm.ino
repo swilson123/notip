@@ -26,7 +26,7 @@ int belt_retract_timeout = 10000;
 
 //Extend and Retract values.................................................................
 int arm_extend_value = 200;
-int arm_retract_value = 60;
+int arm_retract_value = 0;
 
 
 int belt_extend_value = 20000;
