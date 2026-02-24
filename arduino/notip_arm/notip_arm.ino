@@ -21,16 +21,16 @@ String belt_state = "stopped";
 int arm_extend_timeout = 5000;
 int arm_retract_timeout = 5000;
 
-int belt_extend_timeout = 10000;
-int belt_retract_timeout = 10000;
+int belt_extend_timeout = 11000;
+int belt_retract_timeout = 11000;
 
 //Extend and Retract values.................................................................
 int arm_extend_value = 200;
 int arm_retract_value = 0;
 
 
-int belt_extend_value = 20000;
-int belt_retract_value = 200;
+int belt_extend_value = 200;
+int belt_retract_value = 20000;
 
 
 //Timestamps...............................................................................
@@ -110,21 +110,24 @@ void message_received(String json) {
 
 
     if (value < 1100) {
-
+      auto_delivery = false;
       extend_belt();   // forward
     } else if (value > 1800) {
-
+      auto_delivery = false;
       retract_belt();  // backward
     }
     else {
       digitalWrite(belt_enable_pin, LOW);
       actuator.stop();
+      auto_delivery = false;
+
 
     }
 
   }
   else if (message == "arm") {
     arm.write(value);
+    auto_delivery = false;
   }
   else {
     Serial.print("unknown message");
@@ -218,15 +221,20 @@ void retract_arm() {
 void open_arm() {
   arm_state = "open";
 
+  if (auto_delivery) {
+    //move belt back
+    retract_belt();
+  }
+
 }
 
 void close_arm() {
   arm_state = "close";
-
   if (auto_delivery) {
-    //Arm Lowered next retract belt ........
-    retract_belt();
+    //Raise arm ........
+    extend_arm();
   }
+
 
 }
 
@@ -254,6 +262,9 @@ void open_belt() {
   if (auto_delivery) {
     //Belt extended next lower the arm........
     retract_arm();
+    //stop belt
+    digitalWrite(belt_enable_pin, LOW);
+    actuator.stop();
   }
 }
 
@@ -263,6 +274,9 @@ void close_belt() {
   if (auto_delivery) {
     //Auto delivery finished.........
     auto_delivery = false;
+    //stop belt
+    digitalWrite(belt_enable_pin, LOW);
+    actuator.stop();
   }
 }
 
